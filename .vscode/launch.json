@@ -1,0 +1,55 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		// ─── User Service ────────────────────────────────────────────────────────
+		{
+			"name": "User Service: Run",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}/services/user-service/cmd/app",
+			"envFile": "${workspaceFolder}/services/user-service/.env",
+			"showLog": true
+		},
+		{
+			"name": "User Service: Test package",
+			"type": "go",
+			"request": "launch",
+			"mode": "test",
+			"program": "${fileDirname}",
+			"args": [
+				"-v"
+			]
+		},
+		// ─── SMTP Service ────────────────────────────────────────────────────────
+		{
+			"name": "SMTP Service: Run",
+			"type": "go",
+			"request": "launch",
+			"mode": "auto",
+			"program": "${workspaceFolder}/services/smtp-service/cmd/app",
+			"envFile": "${workspaceFolder}/services/smtp-service/.env",
+			"showLog": true
+		},
+		{
+			"name": "SMTP Service: Test package",
+			"type": "go",
+			"request": "launch",
+			"mode": "test",
+			"program": "${fileDirname}",
+			"args": [
+				"-v"
+			]
+		}
+	],
+	"compounds": [
+		{
+			"name": "All Services",
+			"configurations": [
+				"User Service: Run",
+				"SMTP Service: Run"
+			],
+			"stopAll": true
+		}
+	]
+}

@@ -1,0 +1,42 @@
+{
+  // ─── Editor ───────────────────────────────────────────────────────────────
+  // Automatically run the formatter when saving a file.
+  "editor.formatOnSave": true,
+  // All Go-specific editor overrides are scoped here so they don't leak into
+  // YAML, JSON, Markdown, or any other file type in this repo.
+  "[go]": {
+    // Delegates formatting to the Go extension (goimports via go.formatTool).
+    "editor.defaultFormatter": "golang.go",
+    // Go mandates tabs. Scoped here so other file types are not affected.
+    "editor.insertSpaces": false,
+    // Enforce LF line endings for Go files on Windows.
+    // Go tooling (gofmt, go vet) and git diffs expect LF.
+    // Without this, VS Code defaults to CRLF on Windows, causing invisible diff noise.
+    "files.eol": "\n"
+  },
+  // ─── Go: Formatter ────────────────────────────────────────────────────────
+  // goimports = gofmt + automatic import management.
+  // It adds missing imports and removes unused ones on save.
+  // Requires: go install golang.org/x/tools/cmd/goimports@latest
+  "go.formatTool": "goimports",
+  // ─── Go: Linter ───────────────────────────────────────────────────────────
+  // golangci-lint runs multiple linters in one pass and is the industry standard.
+  // Requires: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+  "go.lintTool": "golangci-lint",
+  // ─── Go: Tests ────────────────────────────────────────────────────────────
+  // -race enables the Go race detector on every test run.
+  // Essential for concurrent code — catches data races that unit assertions miss.
+  "go.testFlags": [
+    "-race"
+  ],
+  // Automatically keeps Go toolchain binaries (gopls, dlv, goimports, etc.) up to date.
+  // Useful early on; consider switching to false once the team pins tool versions in CI.
+  "go.toolsManagement.autoUpdate": true,
+  // Enables gopls, the official Go language server.
+  // Provides IntelliSense, go-to-definition, find references, and inline diagnostics.
+  // True by default since Go extension v0.28 — explicit here for clarity.
+  "go.useLanguageServer": true,
+  // ─── Copilot ──────────────────────────────────────────────────────────────
+  // Enables Copilot memory across chat sessions in this workspace.
+  "github.copilot.chat.copilotMemory.enabled": true
+}
