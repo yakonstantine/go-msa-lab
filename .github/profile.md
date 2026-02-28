@@ -1,10 +1,10 @@
 # Developer Profile
 
 ## Background
-- Staff-level Software Architect & Technical Lead, 15+ years in backend/distributed systems
-- .NET ecosystem: ASP.NET Core, Entity Framework, DI containers (heavy), xUnit/Moq, Azure EDA/DDD/CQRS
-- Transitioning to Go as a first-class language; targeting production-grade, cloud-native microservices
-- Deadline: March 31, 2026 (~25 hrs/week); environment: Windows, VS Code
+- Staff-level Software Architect & Technical Lead with extensive experience in backend and distributed systems
+- Strong background in the .NET ecosystem: ASP.NET Core, Entity Framework, DI containers, xUnit/Moq, Azure EDA/DDD/CQRS
+- Currently focusing on Go as a first-class language for production-grade, cloud-native microservices
+- Learning schedule: part-time alongside other commitments, using a standard modern development environment and tools
 
 ## Go Learning Priorities
 Areas requiring the most mentoring depth:
