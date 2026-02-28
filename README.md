@@ -99,6 +99,6 @@ On every user modification:
 
 [Architectural decisions](docs/ADRs.md) (ADRs) and per-service design decisions (DDRs) are recorded and versioned. Pull requests that contradict a recorded decision must reference it explicitly or introduce a new one.
 
-All pull requests are reviewed by a configured [GitHub Copilot review agent](.github/copilot-review-instructions.md) acting as a Senior Go Engineer. It flags production bugs, concurrency safety issues, resource leaks, error handling violations, and non-idiomatic Go patterns. It does not redesign architecture or suggest speculative refactors.
+All pull requests are reviewed by a configured [GitHub Copilot review agent](.github/copilot-instructions.md) acting as a Senior Go Engineer. It flags production bugs, concurrency safety issues, resource leaks, error handling violations, and non-idiomatic Go patterns. It does not redesign architecture or suggest speculative refactors.
 
 AI is treated as a reviewer assistant and an enforcement layer — not an architect or decision-maker. Domain logic, service boundaries, and architectural decisions remain human-owned.
