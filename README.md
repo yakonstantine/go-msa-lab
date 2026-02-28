@@ -1,26 +1,16 @@
 # Go Microservices Architecture Lab
 
-An event-driven Go microservices system designed as an architectural comparison lab.
-
-This repository intentionally implements two different architectural styles within the same distributed system:
+An event-driven Go microservices system built as a structured architectural comparison lab. It intentionally implements two different architectural styles within the same distributed system and demonstrates how AI review agents can be integrated into a production-style engineering workflow.
 
 - **User Service** - [Clean Architecture](https://github.com/evrone/go-clean-template)
 - **SMTP Service** - Minimalist Domain-Oriented Architecture
 
-The goal is to compare structure, complexity, maintainability, and idiomatic Go practices in real-world microservice scenarios.
+## Goals
 
-## Project Goals
-
-This lab explores:
-
-- Clean Architecture in Go
-- Minimalist idiomatic Go service design
-- Event-driven microservices (RabbitMQ)
-- Domain-driven design principles
-- SMTP uniqueness coordination across services
-- Audit logging and asynchronous processing
-- Monorepo structure with multiple Go modules
-- CI automation with GitHub Actions
+- Compare Clean Architecture vs. minimalist idiomatic Go across real microservice scenarios
+- Explore distributed system trade-offs: event-driven design, SMTP uniqueness coordination, audit logging
+- Practice concurrency, domain-driven design, and monorepo structure with multiple Go modules
+- Demonstrate disciplined ADR-driven development and AI-augmented code review in a CI workflow
 
 ## System Architecture
 
@@ -105,11 +95,10 @@ On every user modification:
 - Maintain SMTP registry
 - Update storage accordingly
 
-## Learning Outcomes
+## Engineering Practices
 
-This repository exists to:
-* Understand trade-offs between architecture styles
-* Compare boilerplate vs simplicity
-* Analyze maintainability
-* Explore distributed system edge cases
-* Practice concurrency and event-driven design
+[Architectural decisions](docs/ADRs.md) (ADRs) and per-service design decisions (DDRs) are recorded and versioned. Pull requests that contradict a recorded decision must reference it explicitly or introduce a new one.
+
+All pull requests are reviewed by a configured [GitHub Copilot review agent](.github/copilot-review-instructions.md) acting as a Senior Go Engineer. It flags production bugs, concurrency safety issues, resource leaks, error handling violations, and non-idiomatic Go patterns. It does not redesign architecture or suggest speculative refactors.
+
+AI is treated as a reviewer assistant and an enforcement layer — not an architect or decision-maker. Domain logic, service boundaries, and architectural decisions remain human-owned.
