@@ -1,0 +1,47 @@
+name: Spike
+description: Architecture research / experiment
+labels: ["spike", "architecture"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: |
+        What architectural tension are we exploring?
+        (Layering cost, event contract, uniqueness guarantee, etc.)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: services
+    attributes:
+      label: Services Affected
+      description: Which services are affected?
+      multiple: true
+      options:
+        - User Service
+        - SMTP Service
+        - Docker Infrastructure
+    validations:
+      required: true
+
+  - type: textarea
+    id: impact
+    attributes:
+      label: Impact Scope
+      description: |
+        Does this change event contracts?
+        Does this require a new ADR?
+    validations:
+      required: true
+
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Expected Outcome
+      description: |
+        - Decision?
+        - New ADR?
+        - Follow-up User Story?
+    validations:
+      required: true

@@ -1,0 +1,52 @@
+name: User Story
+description: Main implementation task
+labels: ["user-story"]
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: |
+        What are we implementing and why?
+        What business or system capability does this add?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: services
+    attributes:
+      label: Services Affected
+      description: Which services are affected?
+      multiple: true
+      options:
+        - User Service
+        - SMTP Service
+        - Docker Infrastructure
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Architectural Context
+      description: |
+        Which boundary?
+        Does this touch events, contracts, concurrency, or persistence?
+        ADR/DDR references?
+        Spike references?
+      value: N/A
+
+  - type: textarea
+    id: definition_of_done
+    attributes:
+      label: Definition of Done
+      description: Which criteria determine that a user story is complete?
+      value: |
+        - Implementation complete
+        - Tests added (table-driven where applicable)
+        - No goroutine leaks
+        - Errors wrapped correctly
+        - PR references this issue
+        - ADR/DDR updated if new pattern introduced
+    validations:
+      required: true
