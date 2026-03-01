@@ -40,7 +40,7 @@ body:
     id: definition_of_done
     attributes:
       label: Definition of Done
-      description: Which criteria do determine a user story is complete?
+      description: Which criteria determine that a user story is complete?
       value: |
         - Implementation complete
         - Tests added (table-driven where applicable)
