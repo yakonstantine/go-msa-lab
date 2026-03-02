@@ -15,7 +15,7 @@ Constraints:
 * No framework-driven architecture
 * Explicit control over context propagation and error handling
 * Avoid unnecessary third-party abstractions in minimalist service
-* Preserve realistic industry relevance (Russian Go backend market)
+* Preserve realistic industry relevance
 
 The HTTP framework choice should reinforce the architectural style of each service rather than blur the contrast.
 

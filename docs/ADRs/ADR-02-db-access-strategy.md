@@ -31,7 +31,7 @@ The database layer will differ intentionally between services.
 * Suitable for layered repository implementation.
 * Allows clean infrastructure-layer isolation without leaking persistence details into domain.
 
-`sqlx` will be used only in the infrastructure layer. Domain models must not include DB tags beyond what is strictly necessary for mapping.
+`sqlx` will be used only in the infrastructure layer. Domain models must not include any DB or persistence tags; all struct field tagging for database mapping lives in infrastructure-facing types only.
 
 #### SMTP Service (Minimalist Architecture)
 
@@ -73,7 +73,7 @@ This decision intentionally avoids full ORMs (e.g., GORM) to prevent hidden pers
 
 1. Use GORM
 
-    go-gorm/gorm`
+    `gorm.io/gorm`
     
     Rejected because:
     * Introduces ORM behavior (entity tracking, hooks, implicit joins).
@@ -120,9 +120,9 @@ This decision intentionally avoids full ORMs (e.g., GORM) to prevent hidden pers
 
 **User Service (sqlx)**:
 * Domain models live in `domain/` with **zero persistence tags**
-* Infrastructure DTOs in `infrastructure/persistence/` carry `db:` tags  
+Infrastructure DTOs in `infrastructure/persistence/` carry db struct tags (`db:"..."`)  
 * Repositories map DTO <-> Domain explicitly
-* If tempted to put `db:` tags on domain models to save boilerplate—stop and document the cost/benefit
+* If tempted to put db struct tags (`db:"..."`) on domain models to save boilerplate—stop and document the cost/benefit
 
 **SMTP Service (pgx)**:
 * Inline scanning acceptable (no domain layer to protect)
