@@ -1,5 +1,3 @@
-# Architectural Decision Records
-
 ## ADR-0: Go Version and Language Feature Baseline
 
 **Status**: Accepted | **Date**: 2026-02-28
