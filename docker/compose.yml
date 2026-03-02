@@ -1,7 +1,7 @@
 services:
 
   db-server:
-    image: postgres
+    image: postgres:18-alpine
     restart: always 
     environment:
       POSTGRES_USER: admin
