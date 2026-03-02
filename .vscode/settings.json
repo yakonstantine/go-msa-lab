@@ -38,5 +38,10 @@
   "go.useLanguageServer": true,
   // ─── Copilot ──────────────────────────────────────────────────────────────
   // Enables Copilot memory across chat sessions in this workspace.
-  "github.copilot.chat.copilotMemory.enabled": true
+  "github.copilot.chat.copilotMemory.enabled": true,
+  "cSpell.words": [
+    "healthcheck",
+    "isready",
+    "usrsrv"
+  ]
 }
