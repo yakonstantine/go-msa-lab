@@ -53,7 +53,7 @@ The system must prevent SMTP conflicts while maintaining reasonable performance 
 3. Build candidate: `{firstName}.{lastName}@{domain}`
 4. Check uniqueness: `SELECT EXISTS(SELECT 1 FROM SMTPAddresses WHERE Address = ?)`
 5. If exists in target domain: Append suffix (`.1`, `.2`, `.3`...) until unique
-6. Insert atomically: `INSERT INTO SMTPAddresses (Address, CorpKey, Type)`
+6. Insert atomically: `INSERT INTO SMTPAddresses (Address, Identity, Type)`
 7. If INSERT fails (unique constraint violation): Retry with next suffix
 8. Store in User table: `UPDATE User SET PrimarySMTP = ?`
 
@@ -117,7 +117,7 @@ The system must prevent SMTP conflicts while maintaining reasonable performance 
 ```sql
 SELECT Address 
 FROM SMTPAddresses 
-WHERE CorpKey = ? AND Type = 'Secondary'
+WHERE Identity = ? AND Type = 'Secondary'
 -- No ORDER BY (unsorted)
 -- No Deleted filter (SMTPAddresses has no Deleted column, linked via User table)
 ```
@@ -135,14 +135,14 @@ Examples:
 
 **Same-Domain Update (firstName/lastName change only):**
 - If regenerated primary already exists in user's secondaries:
-  1. Promote: `UPDATE SMTPAddresses SET Type='Primary' WHERE Address=? AND CorpKey=?`
-  2. Demote: `UPDATE SMTPAddresses SET Type='Secondary' WHERE Address=? AND CorpKey=?`
-  3. Update User table: `UPDATE User SET PrimarySMTP = ? WHERE CorpKey=?`
+  1. Promote: `UPDATE SMTPAddresses SET Type='Primary' WHERE Address=? AND Identity=?`
+  2. Demote: `UPDATE SMTPAddresses SET Type='Secondary' WHERE Address=? AND Identity=?`
+  3. Update User table: `UPDATE User SET PrimarySMTP = ? WHERE Identity=?`
   4. No new SMTP allocated—just swap
   
 - If regenerated primary is unique in target domain:
   1. Old primary: `UPDATE SMTPAddresses SET Type='Secondary' WHERE Address=? AND Type='Primary'`
-  2. New primary: `INSERT INTO SMTPAddresses (Address, CorpKey, Type='Primary')`
+  2. New primary: `INSERT INTO SMTPAddresses (Address, Identity, Type='Primary')`
   3. Follow suffix iteration within target domain if needed
 
 **Cross-Domain Update (countryCode/departmentCode change):**
@@ -186,7 +186,7 @@ Examples:
 **Database Schema Requirements**
 - `SMTPAddresses.Address` UNIQUE constraint (enforced at DB level)
 - `User.Deleted` indexed for query performance
-- Composite index: `(CorpKey, Type)` on `SMTPAddresses` for secondary read queries
+- Composite index: `(Identity, Type)` on `SMTPAddresses` for secondary read queries
 
 ## Rejected Alternatives
 

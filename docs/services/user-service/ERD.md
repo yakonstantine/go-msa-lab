@@ -89,7 +89,7 @@ erDiagram
     }
     SMTPAddresses {
         string Address
-        string CorpKey
+        string Identity
         string Type
     }
 ```

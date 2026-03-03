@@ -1,15 +1,17 @@
 package main
 
 import (
-	"fmt"
-	"time"
+	"log"
+
+	"github.com/yakonstantine/go-msa-lab/services/user-service/config"
+	"github.com/yakonstantine/go-msa-lab/services/user-service/internal/app"
 )
 
 func main() {
-	ticker := time.NewTicker(1 * time.Second)
-	defer ticker.Stop()
-
-	for range ticker.C {
-		fmt.Printf("%v: heartbeat\n", time.Now().Format(time.RFC3339))
+	cfg, err := config.NewConfig()
+	if err != nil {
+		log.Fatalf("Config error: %s", err)
 	}
+
+	app.Run(cfg)
 }
