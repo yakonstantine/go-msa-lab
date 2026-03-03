@@ -1,4 +1,4 @@
-## ADR-1: HTTP API Framework Selection per Service
+## ADR-01: HTTP API Framework Selection per Service
 
 **Status**: Accepted | **Date**: 2026-03-02
 

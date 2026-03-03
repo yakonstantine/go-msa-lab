@@ -1,4 +1,4 @@
-# DDR-1: SMTP Address Lifecycle and Uniqueness Enforcement
+# DDR-01: SMTP Address Lifecycle and Uniqueness Enforcement
 
 **Status**: Accepted | **Date**: 2026-03-03
 

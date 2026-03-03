@@ -75,7 +75,7 @@ Returns a user by corporate key.
 
 **Codes**: 
 - 200 - OK
-- 404 - User is not found
+- 404 - User not found
 
 **Body**:
 ```json
@@ -162,7 +162,6 @@ If any of the firstName, lastName, countryCode, or departmentCode fields are upd
 ```
 
 ### Field Constraints
-- `corpKey`: required, non-empty, alphanumeric
 - `fullName`: required, non-empty
 - `firstName`: required, non-empty
 - `lastName`: required, non-empty
@@ -174,7 +173,7 @@ If any of the firstName, lastName, countryCode, or departmentCode fields are upd
 **Codes**: 
 - 200 - OK
 - 400 - Validation Errors
-- 404 - User is not found
+- 404 - User not found
 
 **Body**:
 ```json
