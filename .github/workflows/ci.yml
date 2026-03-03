@@ -1,0 +1,75 @@
+name: CI
+
+on:
+  pull_request:
+    paths:
+      - "services/**"
+  push:
+    branches:
+      - main
+    paths:
+      - "services/**"
+
+jobs:
+  detect-changes:
+    name: Detect Changed Services
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.set-matrix.outputs.services }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            user-service:
+              - 'services/user-service/**'
+            smtp-service:
+              - 'services/smtp-service/**'
+
+      - name: Set matrix
+        id: set-matrix
+        run: |
+          services=()
+          if [[ "${{ steps.filter.outputs.user-service }}" == "true" ]] || [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            services+=("user-service")
+          fi
+          if [[ "${{ steps.filter.outputs.smtp-service }}" == "true" ]] || [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+            services+=("smtp-service")
+          fi
+          echo "services=$(jq -c -n '$ARGS.positional' --args "${services[@]}")" >> $GITHUB_OUTPUT
+
+  service-ci:
+    name: ${{ matrix.service }}
+    needs: detect-changes
+    if: needs.detect-changes.outputs.services != '[]'
+    strategy:
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+      fail-fast: false
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/${{ matrix.service }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+
+      - name: Build
+        run: go build ./cmd/app
+
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: latest
+          working-directory: services/${{ matrix.service }}
+
+      - name: Vet
+        run: go vet ./...
+
+      - name: Test
+        run: go test ./... -v
