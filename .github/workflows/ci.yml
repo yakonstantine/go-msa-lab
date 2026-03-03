@@ -4,11 +4,6 @@ on:
   pull_request:
     paths:
       - "services/**"
-  push:
-    branches:
-      - main
-    paths:
-      - "services/**"
 
 jobs:
   detect-changes:
