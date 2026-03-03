@@ -83,8 +83,8 @@ The system must prevent SMTP conflicts while maintaining reasonable performance 
   2. Updates local DB (`User.PrimarySMTP` and `SMTPAddresses`)
   3. Emits `UserUpdated` event with corrected SMTP
   4. Logs warning with metric: `smtp_conflicts_repaired_total`
-- Client never sees this (silent repair)
-- Correction typically completes within seconds
+- Original create/update response returns the initially generated SMTP address
+- If a repair occurs, subsequent GETs and the `UserUpdated` event will surface the corrected `PrimarySMTP`; no additional error is returned to the caller, and the correction typically completes within seconds
 
 ### Tombstoning Policy
 
