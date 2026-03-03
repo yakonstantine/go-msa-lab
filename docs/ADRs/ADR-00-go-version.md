@@ -1,4 +1,4 @@
-## ADR-0: Go Version and Language Feature Baseline
+## ADR-00: Go Version and Language Feature Baseline
 
 **Status**: Accepted | **Date**: 2026-02-28
 

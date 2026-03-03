@@ -1,4 +1,4 @@
-## ADR-2: Database Access Strategy per Service
+## ADR-02: Database Access Strategy per Service
 
 **Status**: Accepted | **Date**: 2026-03-02
 
