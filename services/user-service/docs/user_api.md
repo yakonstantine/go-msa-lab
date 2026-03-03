@@ -245,7 +245,7 @@ Deletes a user from the system.
 #### Conflict (409)
 ```json
 {
-    "type": "Conhttps://tools.ietf.org/html/rfc7231#section-6.5.8",
+    "type": "https://tools.ietf.org/html/rfc7231#section-6.5.8",
     "status": 409,
     "error": "User with Corp Key 'ABC123' already exists",
     "details": []
