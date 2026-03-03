@@ -27,10 +27,10 @@ jobs:
         id: set-matrix
         run: |
           services=()
-          if [[ "${{ steps.filter.outputs.user-service }}" == "true" ]] || [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          if [[ "${{ steps.filter.outputs['user-service'] }}" == "true" ]] || [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             services+=("user-service")
           fi
-          if [[ "${{ steps.filter.outputs.smtp-service }}" == "true" ]] || [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
+          if [[ "${{ steps.filter.outputs['smtp-service'] }}" == "true" ]] || [[ "${{ github.ref }}" == "refs/heads/main" ]]; then
             services+=("smtp-service")
           fi
           echo "services=$(jq -c -n '$ARGS.positional' --args "${services[@]}")" >> $GITHUB_OUTPUT
