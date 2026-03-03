@@ -13,9 +13,9 @@ The system automatically generates a unique primary SMTP address based on:
 Pattern: `{firstName}.{lastName}@{domain}`
 
 **Uniqueness Guarantee:**
-- The system ensures the generated SMTP address is globally unique
-- If a conflict occurs, a numeric suffix is automatically appended (`.1`, `.2`, etc.)
-- Once assigned, SMTP addresses are never reassigned—even after user deletion
+- User Service ensures the generated SMTP address is unique within its allocation at creation time
+- If a conflict occurs at generation time, a numeric suffix is automatically appended (`.1`, `.2`, etc.)
+- Allocated SMTP addresses are not reassigned by User Service to a different user, but the assigned address remains subject to asynchronous validation by SMTP Service and may be updated later if a conflict or policy violation is detected
 
 ### Request
 
