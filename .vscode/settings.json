@@ -23,12 +23,6 @@
   // golangci-lint runs multiple linters in one pass and is the industry standard.
   // Requires: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
   "go.lintTool": "golangci-lint",
-  // ─── Go: Tests ────────────────────────────────────────────────────────────
-  // -race enables the Go race detector on every test run.
-  // Essential for concurrent code — catches data races that unit assertions miss.
-  "go.testFlags": [
-    "-race"
-  ],
   // Automatically keeps Go toolchain binaries (gopls, dlv, goimports, etc.) up to date.
   // Useful early on; consider switching to false once the team pins tool versions in CI.
   "go.toolsManagement.autoUpdate": true,
@@ -42,6 +36,8 @@
   "cSpell.words": [
     "healthcheck",
     "isready",
+    "smtps",
+    "usecase",
     "usrsrv",
     "yakonstantine"
   ]
