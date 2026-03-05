@@ -78,8 +78,8 @@ User Service stores user profile data and assigns SMTP addresses based on firstN
 
 ```mermaid
 erDiagram
-    User ||--|{ SMTPAddresses : has
-    User {
+    Users ||--|{ SMTPAddresses : has
+    Users {
         string CorpKey
         string FullName
         string CountryCode

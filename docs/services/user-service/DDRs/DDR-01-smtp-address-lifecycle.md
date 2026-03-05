@@ -4,189 +4,164 @@
 
 ## Context
 
-User Service assigns SMTP addresses to users based on firstName, lastName, countryCode, and departmentCode. SMTP Service maintains a global registry of all SMTP addresses across the organization (including users, shared mailboxes, distribution lists, etc.).
+User Service assigns SMTP addresses based on firstName, lastName, countryCode, and departmentCode. SMTP Service maintains a global registry including users, shared mailboxes, and distribution lists.
 
-Business requirements:
-- SMTP addresses must be globally unique across the entire organization
-- Once assigned, SMTP addresses are never reassigned—even after user deletion
-- Users may accumulate multiple SMTP addresses over their lifetime (when primary changes)
-- Name changes may trigger SMTP regeneration
+**Business Requirements:**
+- SMTP addresses must be globally unique
+- Once assigned, addresses are never reassigned—even after user deletion
+- Users accumulate multiple addresses over their lifetime as primary changes
+- Name or location changes may trigger new SMTP generation
 
-The system must prevent SMTP conflicts while maintaining reasonable performance and avoiding complex distributed locking.
+**Challenge:** Prevent SMTP conflicts while maintaining reasonable performance without complex distributed locking.
 
 ## Decision
 
 ### Ownership Model
 
-**User Service**
+**User Service:**
 - Authoritative for user-to-SMTP mapping
 - Owns SMTP generation algorithm
 - Enforces local uniqueness via database constraints
-- Stores validation snapshot in `SMTPAddresses` table
+- Maintains historical record of all assigned SMTPs
 
-**SMTP Service**
-- Authoritative for global SMTP existence (all address types: users, mailboxes, lists)
+**SMTP Service:**
+- Authoritative for global SMTP existence (all types)
 - Validates SMTP availability across organization
 - Subscriber to User Service events (eventual consistency)
-- May reject SMTP allocations asynchronously if conflicts detected
+- May reject allocations asynchronously if conflicts detected
 
-**`SMTPAddresses` Table**
-- Validation-only snapshot of locally assigned SMTPs
-- Historical record of all SMTPs ever assigned to users
-- Not synchronized with SMTP Service (eventual consistency)
+**Consistency Model:** Eventual consistency between services. Strong local guarantees, optimistic global validation.
 
-### Uniqueness Enforcement Strategy
+### SMTP Generation Strategy
 
-**Local Uniqueness (Strong Guarantee)**
-- `SMTPAddresses.Address` has unique constraint (enforced globally across all domains)
-- Prevents duplicate assignment within User Service
-- Concurrent create requests with same firstName/lastName in same domain → different suffixes assigned
-- Same firstName/lastName in different domains → no suffix needed (e.g., `john.doe@co.nl` and `john.doe@co.be`)
+**Pattern:** `{firstName}.{lastName}[.suffix]@{domain}`
 
-**Generation Algorithm**
-1. Derive domain from countryCode/departmentCode lookup:
-   - Default: `co-group.com`
-   - Specific mappings (examples):
-     - `NL + 1234` → `co.nl`
-     - `BE + *` → `co.be`
-2. Compute local-part: `{firstName}.{lastName}`
-3. Build candidate: `{firstName}.{lastName}@{domain}`
-4. Check uniqueness: `SELECT EXISTS(SELECT 1 FROM SMTPAddresses WHERE Address = ?)`
-5. If exists in target domain: Append suffix (`.1`, `.2`, `.3`...) until unique
-6. Insert atomically: `INSERT INTO SMTPAddresses (Address, Identity, Type)`
-7. If INSERT fails (unique constraint violation): Retry with next suffix
-8. Store in User table: `UPDATE User SET PrimarySMTP = ?`
+**Domain Derivation:**
+- Determined by countryCode + departmentCode lookup
+- Default: `co-group.com`
+- Specific mappings: `NL/1234 → co.nl`, `BE/* → co.be`, etc.
 
-**Note:** Suffix iteration is scoped per domain. `john.doe@co.nl` and `john.doe@co.be` can coexist without suffixes.
+**Uniqueness Approach:**
+- Local-part (firstName.lastName) checked within target domain only
+- Numeric suffix (`.1`, `.2`, `.3`...) appended if conflict exists in that domain
+- Same name in different domains = no suffix needed
 
-**Global Validation via SMTP Service**
-- After local assignment, User Service emits `UserCreated` or `UserUpdated` event
-- SMTP Service consumes event and validates against global registry
-- If conflict detected (rare): SMTP Service may reject asynchronously
+**Examples:**
+- `john.doe@co.nl` exists → new user in NL/1234 gets `john.doe.1@co.nl`
+- `john.doe@co.nl` exists → new user in BE domain gets `john.doe@co.be` (different domain, no suffix)
+- `john.doe@co.nl` and `john.doe@co.be` can coexist (same person, different locations)
 
-### Race Condition Handling
-
-**Within User Service**
-- Concurrent creates with identical firstName/lastName in same domain → both iterate to unique suffixes
-- Concurrent creates with identical firstName/lastName in different domains → no conflict
-- Unique constraint prevents duplicates globally
-- No pessimistic locking required
-- Examples:
+**Conflict Resolution:**
+- Concurrent creates in same domain: both get unique suffixes via database constraint
   - Request A (NL/1234): `john.doe@co.nl` exists → assigns `john.doe.1@co.nl`
   - Request B (NL/1234, concurrent): `john.doe@co.nl` exists → assigns `john.doe.2@co.nl`
-  - Request C (BE/any, concurrent): assigns `john.doe@co.be` (different domain, no suffix needed)
+- Cross-domain: no conflict (different addresses)
+  - Request C (BE, concurrent): assigns `john.doe@co.be`
+- No pessimistic locking required
 
-**Cross-Service Conflicts (SMTP Service rejection)**
-- Strategy: Optimistic + Silent Repair
-- If SMTP Service rejects (very rare—indicates sync drift):
-  1. User Service generates new SMTP with next suffix
-  2. Updates local DB (`User.PrimarySMTP` and `SMTPAddresses`)
-  3. Emits `UserUpdated` event with corrected SMTP
-  4. Logs warning with metric: `smtp_conflicts_repaired_total`
-- Original create/update response returns the initially generated SMTP address
-- If a repair occurs, subsequent GETs and the `UserUpdated` event will surface the corrected `PrimarySMTP`; no additional error is returned to the caller, and the correction typically completes within seconds
+### Cross-Service Validation
 
-### Tombstoning Policy
+**Strategy:** Optimistic + Silent Repair
 
-**User Deletion**
-- Sets `User.Deleted = true` (soft delete)
-- SMTPs remain in `SMTPAddresses` table indefinitely
-- Deleted users' SMTPs never released for reuse (across all domains)
-- Next user with same firstName/lastName in same domain gets numeric suffix
-- Next user with same firstName/lastName in different domain may not need suffix
+During creation/update, User Service validates SMTP availability by calling SMTP Service HTTP API (GET /smtps/:smtp):
+- 404 → SMTP available, proceed with assignment
+- 200 → SMTP taken, increment suffix and retry
 
-**Why Never Reassign**
+After local assignment, User Service emits event to SMTP Service for eventual consistency. If SMTP Service detects conflict (rare—indicates sync drift):
+- User Service generates new SMTP with next suffix
+- Updates local database
+- Emits correction event
+- Logs metric: `smtp_conflicts_repaired_total`
+
+**Client Impact:** Original response returns initially generated address. If repair occurs, subsequent reads reflect corrected address. Correction typically completes within seconds.
+
+**Example:**
+- User created with `john.doe@co.nl`, returns 201
+- SMTP Service later rejects (conflict with shared mailbox)
+- User Service auto-corrects to `john.doe.1@co.nl`
+- Next GET returns updated address
+
+### Deletion Policy
+
+**Soft Delete:** User marked as deleted, data retained, SMTP addresses tombstoned forever.
+
+**Why Never Reassign:**
 - Email addresses have organizational memory (audit trails, external systems)
-- Prevents security/privacy issues (new user receiving old user's emails)
-- Simplifies uniqueness logic (monotonic growth)
+- Prevents security issues (new user receiving old user's emails)
+- Simplifies uniqueness logic
 
-**Query Filtering**
-- All read endpoints: `WHERE User.Deleted = false`
-- Tombstoned SMTPs invisible to clients
-- `SMTPAddresses` table grows unbounded (acceptable for user scale)
+**Behavior:**
+- Deleted users excluded from queries
+- Their SMTPs never released for reuse globally
+- Next user with same name in same domain gets numeric suffix
+  - Example: `john.doe@co.nl` deleted → new user in NL/1234 gets `john.doe.1@co.nl`
+- Next user with same name in different domain may not need suffix
+  - Example: `john.doe@co.nl` deleted → new user in BE gets `john.doe@co.be`
 
-### Secondary SMTP Semantics
+### Update Behavior
 
-**Accumulation**
-- When primary SMTP changes: old primary → `UPDATE SMTPAddresses SET Type='Secondary' WHERE Address=? AND Type='Primary'`
-- Append-only—never removed
-- Unsorted in GET responses (insertion order or arbitrary)
-- Growth unbounded per user (typically low, <10 per user lifetime)
+**Primary SMTP Regeneration Triggers:**
+- firstName or lastName changes → local-part changes
+  - Example: `John Doe (NL/1234)` → `John Smith (NL/1234)` regenerates to `john.smith@co.nl`
+- countryCode or departmentCode changes → domain changes
+  - Example: `John Doe (NL/1234)` → `John Doe (BE/any)` regenerates from `co.nl` to `co.be`
+- No change if normalized pattern stays same
+  - Example: `Jöhn Doe` → `John Doe` (typo fix with same normalized result)
 
-**Read Model Query:**
-```sql
-SELECT Address 
-FROM SMTPAddresses 
-WHERE Identity = ? AND Type = 'Secondary'
--- No ORDER BY (unsorted)
--- No Deleted filter (SMTPAddresses has no Deleted column, linked via User table)
-```
+**Same-Domain Updates:**
+- If regenerated SMTP exists in user's secondaries: swap (promote from secondaries, demote current primary)
+  - No new SMTP allocated, just rearrange existing addresses
+- If regenerated SMTP is unique: old primary → secondaries, assign new primary
+  - Old: `john.doe@co.nl` → secondaries
+  - New: `john.smith@co.nl` (or `.1` if conflict)
 
-**SMTP Swap Logic (on Update):**
+**Cross-Domain Updates:**
+- Cannot swap (different domains)
+- Old primary always → secondaries
+- New primary generated in target domain (with suffix if needed)
+  - Example: `john.doe@co.nl` → moved to BE → becomes `john.doe@co.be` (or `.1` if exists)
 
-Primary regeneration triggered if:
-- firstName or lastName changes (local-part changes)
-- countryCode or departmentCode changes such that domain changes
+**Secondary Addresses:**
+- Append-only historical record
+- Never removed
+- Unsorted in responses
+- Typically < 10 per user lifetime
 
-Examples:
-- `John Doe (NL/1234)` → `John Smith (NL/1234)`: local-part changes, domain stays `co.nl`
-- `John Doe (NL/1234)` → `John Doe (BE/any)`: local-part stays, domain changes to `co.be`
-- `Jöhn Doe` → `John Doe`: no change if normalized local-part stays same
+### Edge Cases
 
-**Same-Domain Update (firstName/lastName change only):**
-- If regenerated primary already exists in user's secondaries:
-  1. Promote: `UPDATE SMTPAddresses SET Type='Primary' WHERE Address=? AND Identity=?`
-  2. Demote: `UPDATE SMTPAddresses SET Type='Secondary' WHERE Address=? AND Identity=?`
-  3. Update User table: `UPDATE User SET PrimarySMTP = ? WHERE Identity=?`
-  4. No new SMTP allocated—just swap
-  
-- If regenerated primary is unique in target domain:
-  1. Old primary: `UPDATE SMTPAddresses SET Type='Secondary' WHERE Address=? AND Type='Primary'`
-  2. New primary: `INSERT INTO SMTPAddresses (Address, Identity, Type='Primary')`
-  3. Follow suffix iteration within target domain if needed
-
-**Cross-Domain Update (countryCode/departmentCode change):**
-- Cannot swap (different domain)
-- Always generates new SMTP in target domain
-- Old primary always moves to secondaries
-- New primary follows suffix iteration in target domain
-- Example: `john.doe@co.nl` → moved to country BE → generates `john.doe@co.be` (or `.1` if exists)
-
-### Edge Cases and Limits
-
-**Suffix Iteration Limit**
+**Suffix Limits:**
 - No hard limit enforced (implementation may set practical limit like `.999`)
-- If limit reached: return 500 Internal Server Error (extremely rare)
-- Monitor via metric: `smtp_suffix_max` (track highest suffix assigned)
+- If limit reached: return 500 error (extremely rare)
 
-**Typo Corrections:**
-- Updating firstName/lastName/countryCode/departmentCode without changing SMTP (local-part or domain): no regeneration
-- Example: Fixing diacritics that normalize to same ASCII local-part
-- Example: Updating departmentCode within same domain mapping (e.g., NL/5678 → NL/9999 if both map to co.nl)
+**No-Op Updates:**
+- Changes that don't affect SMTP pattern → no regeneration
+  - Example: Fixing diacritics that normalize to same ASCII (`Jöhn` → `John`)
+  - Example: Department code change within same domain (NL/5678 → NL/9999 both map to `co.nl`)
 
-**Cross-Service Sync Drift:**
-- Monitor: `smtp_service_rejections_total` metric
-- Alert if repair rate exceeds threshold (indicates persistent drift)
-- Manual investigation required if frequent
+**Monitoring:**
+- Track `smtp_suffix_max` (highest suffix assigned)
+- Track `smtp_service_rejections_total` (async validation failures)
+- Alert if rejection rate increases (indicates sync drift)
 
 ## Consequences
 
-**Positive**
-- Strong local uniqueness guarantee (no duplicates within User Service)
+**Benefits:**
+- Strong local uniqueness guarantee (no duplicates)
 - Simple algorithm (suffix iteration, no distributed locks)
-- Auditable (all SMTPs preserved historically)
-- Safe (never reuse deleted user addresses)
+- Full audit trail (all SMTPs preserved)
+- Safe (no address reuse)
 
-**Trade-offs**
-- `SMTPAddresses` table grows unbounded (mitigated: user scale typically <100K)
-- Secondary SMTPs grow per user (mitigated: typically <10 lifetime)
+**Trade-offs:**
+- Storage grows unbounded (mitigated: user scale typically < 100K)
+- Secondary addresses grow per user (mitigated: typically < 10 lifetime)
 - Eventual consistency with SMTP Service (mitigated: conflicts very rare)
-- Silent repair invisible to clients (mitigated: observability via logs/metrics)
+- Silent repair invisible to clients (mitigated: observable via metrics/events)
 
-**Database Schema Requirements**
-- `SMTPAddresses.Address` UNIQUE constraint (enforced at DB level)
-- `User.Deleted` indexed for query performance
-- Composite index: `(Identity, Type)` on `SMTPAddresses` for secondary read queries
+**Operational Requirements:**
+- Monitor suffix distribution and conflict repair metrics
+- Alert on unusual rejection rates
+- Database unique constraint enforcement on SMTP addresses
+- Indexed queries for soft-deleted users
 
 ## Rejected Alternatives
 

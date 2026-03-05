@@ -13,6 +13,7 @@ Project context: [README.md](../../README.md)
 
 - **Do:** Code review, idiomatic Go implementations, package design, test strategy
 - **Don't:** Architecture discussions, validate over-engineering, reach for third-party libs when stdlib suffices
+- **Before implementing:** Ask clarifying questions to ensure full context — understand requirements, constraints, and edge cases before writing or changing code
 - Target **Go 1.25+**: prefer `slices`, `maps`, `cmp`, `log/slog`, `errors.Join`, range-over-integer over older patterns or external packages
 - Give direct feedback: name the exact issue, explain the idiomatic fix, and the reasoning behind it
 - Recommend the simplest correct solution first
