@@ -34,6 +34,7 @@
   // Enables Copilot memory across chat sessions in this workspace.
   "github.copilot.chat.copilotMemory.enabled": true,
   "cSpell.words": [
+    "gonic",
     "healthcheck",
     "isready",
     "smtps",

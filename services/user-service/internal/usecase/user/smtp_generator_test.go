@@ -78,11 +78,11 @@ func TestCalcDomain(t *testing.T) {
 func TestGeneratePrimarySMTP(t *testing.T) {
 	ctx := context.Background()
 	tests := []struct {
-		name       string
-		up         *entity.UserProfile
-		duplicates int
-		want       string
-		wantErr    bool
+		name    string
+		up      *entity.UserProfile
+		retries int
+		want    string
+		wantErr bool
 	}{
 		{name: "get smtp by email error",
 			up: &entity.UserProfile{
@@ -100,9 +100,9 @@ func TestGeneratePrimarySMTP(t *testing.T) {
 				CountryCode:    "RU",
 				DepartmentCode: "ABC-123",
 			},
-			duplicates: 0,
-			want:       "bar.foo@co.ru",
-			wantErr:    false,
+			retries: 0,
+			want:    "bar.foo@co.ru",
+			wantErr: false,
 		},
 		{name: "kz smtp pattern",
 			up: &entity.UserProfile{
@@ -111,9 +111,9 @@ func TestGeneratePrimarySMTP(t *testing.T) {
 				CountryCode:    "KZ",
 				DepartmentCode: "ABC-123",
 			},
-			duplicates: 0,
-			want:       "bar.foo@co.kz",
-			wantErr:    false,
+			retries: 0,
+			want:    "bar.foo@co.kz",
+			wantErr: false,
 		},
 		{name: "smtp is not in use",
 			up: &entity.UserProfile{
@@ -122,9 +122,9 @@ func TestGeneratePrimarySMTP(t *testing.T) {
 				CountryCode:    "NL",
 				DepartmentCode: "ABC-123",
 			},
-			duplicates: 0,
-			want:       "aeio.van.der.niea@" + defaultDomain,
-			wantErr:    false,
+			retries: 0,
+			want:    "aeio.van.der.niea@" + defaultDomain,
+			wantErr: false,
 		},
 		{name: "smtp is in use one time",
 			up: &entity.UserProfile{
@@ -133,9 +133,9 @@ func TestGeneratePrimarySMTP(t *testing.T) {
 				CountryCode:    "US",
 				DepartmentCode: "ABC-123",
 			},
-			duplicates: 1,
-			want:       "mul.bar.1@" + defaultDomain,
-			wantErr:    false,
+			retries: 1,
+			want:    "mul.bar.1@" + defaultDomain,
+			wantErr: false,
 		},
 		{name: "smtp is in use two times",
 			up: &entity.UserProfile{
@@ -144,9 +144,9 @@ func TestGeneratePrimarySMTP(t *testing.T) {
 				CountryCode:    "CH",
 				DepartmentCode: "ABC-123",
 			},
-			duplicates: 2,
-			want:       "dr.bar.foo-bar.2@" + defaultDomain,
-			wantErr:    false,
+			retries: 2,
+			want:    "dr.bar.foo-bar.2@" + defaultDomain,
+			wantErr: false,
 		},
 	}
 
@@ -157,7 +157,7 @@ func TestGeneratePrimarySMTP(t *testing.T) {
 				if tt.wantErr {
 					return nil, fmt.Errorf("error")
 				}
-				if tt.duplicates > index {
+				if tt.retries > index {
 					index++
 					return &entity.SMTPAddress{}, nil
 				}
@@ -181,5 +181,32 @@ func TestGeneratePrimarySMTP(t *testing.T) {
 				t.Errorf("generatePrimarySMTP = %v, want %v", got, tt.want)
 			}
 		})
+	}
+}
+
+func TestGeneratePrimarySMTP_100Retries(t *testing.T) {
+	// Arrange
+	ctx := context.Background()
+	up := &entity.UserProfile{
+		FirstName:      "foo",
+		LastName:       "bar",
+		CountryCode:    "CH",
+		DepartmentCode: "ABC-123",
+	}
+	retries := 0
+	mockSMTPRepo := &mock.SMTPRepository{
+		GetByEmailFn: func(context.Context, entity.Email) (*entity.SMTPAddress, error) {
+			retries++
+			return &entity.SMTPAddress{}, nil
+		},
+	}
+	// Act
+	got, gotErr := generatePrimarySMTP(ctx, mockSMTPRepo, up)
+	// Assert
+	if gotErr == nil {
+		t.Fatalf("generatePrimarySMTP got %v, want error", got)
+	}
+	if retries != 100 {
+		t.Errorf("generatePrimarySMTP retries %v, want 100", retries)
 	}
 }

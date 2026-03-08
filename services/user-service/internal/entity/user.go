@@ -11,6 +11,10 @@ var corpKeyPattern = regexp.MustCompile("^([A-Z]{3}[0-9]{3})$")
 
 type CorpKey string
 
+func NewCorpKey(s string) CorpKey {
+	return CorpKey(strings.TrimSpace(strings.ToUpper(s)))
+}
+
 func (ck CorpKey) Validate() error {
 	if ok := corpKeyPattern.MatchString(string(ck)); !ok {
 		return fmt.Errorf("Corporate Key should be in format 3 capital letters, 3 numbers - '%v': %w", ck, ErrInvalid)
@@ -63,7 +67,7 @@ type UserProfile struct {
 }
 
 func (u *UserProfile) Sanitize() {
-	u.CorpKey = CorpKey(strings.TrimSpace(strings.ToUpper(string(u.CorpKey))))
+	u.CorpKey = NewCorpKey(string(u.CorpKey))
 	u.FirstName = Name(strings.TrimSpace(string(u.FirstName)))
 	u.LastName = Name(strings.TrimSpace(string(u.LastName)))
 	u.FullName = strings.TrimSpace(u.FullName)

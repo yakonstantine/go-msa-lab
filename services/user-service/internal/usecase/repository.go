@@ -13,7 +13,7 @@ type (
 	}
 	SMTPRepository interface {
 		GetByEmail(context.Context, entity.Email) (*entity.SMTPAddress, error)
-		GetByIdentity(ctx context.Context, identity string) ([]entity.SMTPAddress, error)
+		GetByIdentity(context.Context, string) ([]entity.SMTPAddress, error)
 		Create(context.Context, Transaction, *entity.SMTPAddress) error
 	}
 	Transaction interface {

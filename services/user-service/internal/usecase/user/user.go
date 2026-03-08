@@ -65,11 +65,6 @@ func (uc *UseCase) Create(ctx context.Context, up *entity.UserProfile) (*entity.
 }
 
 func (uc *UseCase) GetByCorpKey(ctx context.Context, ck entity.CorpKey) (*entity.User, error) {
-	err := ck.Validate()
-	if err != nil {
-		return nil, err
-	}
-
 	u, err := uc.userRepo.GetByCorpKey(ctx, ck)
 	if err != nil {
 		return nil, fmt.Errorf("error get user '%v': %w", ck, err)
