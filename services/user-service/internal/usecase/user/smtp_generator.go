@@ -92,7 +92,7 @@ func calcDomain(cc entity.CountryCode, dc string) string {
 	case "KZ":
 		return "co.kz"
 	case "RU":
-		if strings.HasSuffix(dc, "FOO") {
+		if strings.HasPrefix(dc, "FOO") {
 			return "foo.ru"
 		}
 		return "co.ru"
