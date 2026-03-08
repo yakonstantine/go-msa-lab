@@ -1,6 +1,6 @@
 ---
 name: tech-lead
-description: Staff-level Technical Lead
+description: Critique system design trade-offs and surface architectural risks in this Go microservices lab
 ---
 
 ## Role
