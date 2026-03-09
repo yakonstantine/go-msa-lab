@@ -18,6 +18,10 @@ type UserDTO struct {
 }
 
 func UserFromEntity(u *entity.User) *UserDTO {
+	if u == nil {
+		return nil
+	}
+
 	secondaries := make([]string, 0, len(u.SecondarySMTPs))
 	for _, sec := range u.SecondarySMTPs {
 		secondaries = append(secondaries, string(sec))

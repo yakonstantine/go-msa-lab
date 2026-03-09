@@ -1,22 +1,21 @@
 package handler
 
 import (
-	"fmt"
+	"context"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/yakonstantine/go-msa-lab/services/user-service/internal/dto"
 	"github.com/yakonstantine/go-msa-lab/services/user-service/internal/entity"
-	"github.com/yakonstantine/go-msa-lab/services/user-service/internal/usecase/user"
 )
 
 type ChangeUserRequest struct {
 	CorpKey        string `json:"corpKey"`
-	FirstName      string `json:"firstName"`
-	LastName       string `json:"lastName"`
-	FullName       string `json:"fullName"`
-	CountryCode    string `json:"countryCode"`
-	DepartmentCode string `json:"departmentCode"`
+	FirstName      string `json:"firstName" binding:"required"`
+	LastName       string `json:"lastName" binding:"required"`
+	FullName       string `json:"fullName" binding:"required"`
+	CountryCode    string `json:"countryCode" binding:"required"`
+	DepartmentCode string `json:"departmentCode" binding:"required"`
 }
 
 func (r *ChangeUserRequest) toUserProfile() *entity.UserProfile {
@@ -30,26 +29,32 @@ func (r *ChangeUserRequest) toUserProfile() *entity.UserProfile {
 	}
 }
 
-type UserHandler struct {
-	useCase *user.UseCase
+type UserUseCase interface {
+	Create(context.Context, *entity.UserProfile) (*entity.User, error)
+	GetByCorpKey(context.Context, entity.CorpKey) (*entity.User, error)
 }
 
-func NewUserHandler(uc *user.UseCase) *UserHandler {
+type UserHandler struct {
+	useCase UserUseCase
+}
+
+func NewUserHandler(uc UserUseCase) *UserHandler {
 	return &UserHandler{
 		useCase: uc,
 	}
 }
 
 func (h *UserHandler) CreateUser(c *gin.Context) {
-	req := &ChangeUserRequest{}
-	if err := c.BindJSON(req); err != nil {
+	var req ChangeUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		_ = c.Error(err)
 		return
 	}
 
 	up := req.toUserProfile()
 	u, err := h.useCase.Create(c.Request.Context(), up)
 	if err != nil {
-		c.Error(err)
+		_ = c.Error(err)
 		return
 	}
 
@@ -58,14 +63,9 @@ func (h *UserHandler) CreateUser(c *gin.Context) {
 
 func (h *UserHandler) GetByCorpKey(c *gin.Context) {
 	ck := c.Param("corpKey")
-	if ck == "" {
-		c.Error(fmt.Errorf("no corpKey path parameter provided"))
-		return
-	}
-
 	u, err := h.useCase.GetByCorpKey(c.Request.Context(), entity.NewCorpKey(ck))
 	if err != nil {
-		c.Error(err)
+		_ = c.Error(err)
 		return
 	}
 

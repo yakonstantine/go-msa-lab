@@ -13,6 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/yakonstantine/go-msa-lab/services/user-service/config"
 	"github.com/yakonstantine/go-msa-lab/services/user-service/internal/handler"
+	"github.com/yakonstantine/go-msa-lab/services/user-service/internal/handler/middleware"
 	"github.com/yakonstantine/go-msa-lab/services/user-service/internal/infra/repo"
 	"github.com/yakonstantine/go-msa-lab/services/user-service/internal/usecase/user"
 )
@@ -22,10 +23,12 @@ func Run(cfg *config.Config) {
 	ur := repo.NewUserMemoRepo()
 	sr := repo.NewSMTPMemoRepo()
 
-	userUseCase := user.New(txf, ur, sr)
+	userUseCase := user.NewUseCase(txf, ur, sr)
 	userHandler := handler.NewUserHandler(userUseCase)
 
-	router := gin.Default()
+	router := gin.New()
+	router.Use(gin.Recovery())
+	router.Use(middleware.ErrorMiddleware())
 
 	g := router.Group("/api")
 	g.GET("/ping", func(c *gin.Context) {
@@ -34,17 +37,17 @@ func Run(cfg *config.Config) {
 
 	handler.NewUserRoutes(g, userHandler)
 
-	runServer(router)
+	runServer(router, "8011")
 }
 
-func runServer(router *gin.Engine) {
+func runServer(router *gin.Engine, port string) {
 	srv := &http.Server{
-		Addr:    ":8011",
+		Addr:    ":" + port,
 		Handler: router,
 	}
 
 	go func() {
-		slog.Info("starting server on :8011")
+		slog.Info("starting server", "port", port)
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			slog.Error("http server failed", "error", err)
 			os.Exit(1)
@@ -53,6 +56,9 @@ func runServer(router *gin.Engine) {
 
 	// Block until OS signal
 	quit := make(chan os.Signal, 1)
+	// kill (no params) by default sends syscall.SIGTERM
+	// kill -2 is syscall.SIGINT
+	// kill -9 is syscall.SIGKILL but can't be caught, so don't need add it
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 

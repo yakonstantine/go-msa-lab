@@ -2,8 +2,6 @@ package entity
 
 import (
 	"errors"
-	"fmt"
-	"strings"
 )
 
 var ErrInvalid = errors.New("invalid")
@@ -15,15 +13,10 @@ type ValidationError struct {
 	Fields  map[string]error
 }
 
-func (e *ValidationError) Error() string {
-	var msgs []string
-	for field, err := range e.Fields {
-		msgs = append(msgs, fmt.Sprintf("%s: %v", field, err))
+func (e ValidationError) Error() string {
+	var msg = e.Message
+	if msg == "" {
+		msg = "validation failed"
 	}
-
-	var prefix = e.Message
-	if prefix == "" {
-		prefix = "validation failed"
-	}
-	return prefix + ": " + strings.Join(msgs, "; ")
+	return msg
 }

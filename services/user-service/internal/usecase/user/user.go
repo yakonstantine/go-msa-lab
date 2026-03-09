@@ -15,7 +15,7 @@ type UseCase struct {
 	smtpRepo usecase.SMTPRepository
 }
 
-func New(
+func NewUseCase(
 	txf usecase.TransactionFactory,
 	userRepo usecase.UserRepository,
 	smtpRepo usecase.SMTPRepository,
@@ -68,6 +68,9 @@ func (uc *UseCase) GetByCorpKey(ctx context.Context, ck entity.CorpKey) (*entity
 	u, err := uc.userRepo.GetByCorpKey(ctx, ck)
 	if err != nil {
 		return nil, fmt.Errorf("error get user '%v': %w", ck, err)
+	}
+	if u == nil {
+		return nil, fmt.Errorf("user with corp key '%v' %w", ck, entity.ErrNotFound)
 	}
 
 	smtps, err := uc.smtpRepo.GetByIdentity(ctx, string(ck))

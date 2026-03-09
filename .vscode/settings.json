@@ -1,7 +1,8 @@
 {
   // ─── Editor ───────────────────────────────────────────────────────────────
-  // Automatically run the formatter when saving a file.
   "editor.formatOnSave": true,
+  "editor.tabSize": 4,
+  "editor.insertSpaces": false,
   // All Go-specific editor overrides are scoped here so they don't leak into
   // YAML, JSON, Markdown, or any other file type in this repo.
   "[go]": {

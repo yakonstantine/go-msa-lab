@@ -17,7 +17,7 @@ func NewCorpKey(s string) CorpKey {
 
 func (ck CorpKey) Validate() error {
 	if ok := corpKeyPattern.MatchString(string(ck)); !ok {
-		return fmt.Errorf("Corporate Key should be in format 3 capital letters, 3 numbers - '%v': %w", ck, ErrInvalid)
+		return fmt.Errorf("Corporate Key should be in format 3 capital letters, 3 numbers, but '%v': %w", ck, ErrInvalid)
 	}
 	return nil
 }
@@ -91,13 +91,13 @@ func (u *UserProfile) Validate() error {
 		valErr.Fields["LastName"] = err
 	}
 	if len(u.FullName) < 3 || len(u.FullName) > 256 {
-		err := fmt.Errorf("Full Name should be between 3 and 256 characters - '%v': %w", len(u.FullName), ErrInvalid)
+		err := fmt.Errorf("Full Name should be between 3 and 256 characters, but '%v': %w", len(u.FullName), ErrInvalid)
 		valErr.Fields["FullName"] = err
 	}
 	if len(u.DepartmentCode) < 3 ||
 		len(u.DepartmentCode) > 12 ||
 		strings.Contains(u.DepartmentCode, " ") {
-		valErr.Fields["DepartmentCode"] = fmt.Errorf("Department Code should be between 3 and 12 characters, shouldn't contain spaces - '%v': %w", len(u.DepartmentCode), ErrInvalid)
+		valErr.Fields["DepartmentCode"] = fmt.Errorf("Department Code should be between 3 and 12 characters, shouldn't contain spaces, but '%v': %w", len(u.DepartmentCode), ErrInvalid)
 	}
 
 	if len(valErr.Fields) > 0 {
