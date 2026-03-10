@@ -18,7 +18,7 @@ type ChangeUserRequest struct {
 	DepartmentCode string `json:"departmentCode" binding:"required"`
 }
 
-func (r *ChangeUserRequest) toUserProfile() *entity.UserProfile {
+func toUserProfile(r ChangeUserRequest) *entity.UserProfile {
 	return &entity.UserProfile{
 		CorpKey:        entity.CorpKey(r.CorpKey),
 		FirstName:      entity.Name(r.FirstName),
@@ -31,7 +31,9 @@ func (r *ChangeUserRequest) toUserProfile() *entity.UserProfile {
 
 type UserUseCase interface {
 	Create(context.Context, *entity.UserProfile) (*entity.User, error)
+	Update(context.Context, *entity.UserProfile) (*entity.User, error)
 	GetByCorpKey(context.Context, entity.CorpKey) (*entity.User, error)
+	GetPage(ctx context.Context, limit, offset int) (entity.Page[entity.User], error)
 }
 
 type UserHandler struct {
@@ -44,21 +46,40 @@ func NewUserHandler(uc UserUseCase) *UserHandler {
 	}
 }
 
-func (h *UserHandler) CreateUser(c *gin.Context) {
+func (h *UserHandler) Create(c *gin.Context) {
 	var req ChangeUserRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		_ = c.Error(err)
 		return
 	}
 
-	up := req.toUserProfile()
+	up := toUserProfile(req)
 	u, err := h.useCase.Create(c.Request.Context(), up)
 	if err != nil {
 		_ = c.Error(err)
 		return
 	}
 
-	c.JSON(http.StatusCreated, dto.UserFromEntity(u))
+	c.JSON(http.StatusCreated, dto.ToUserDTO(*u))
+}
+
+func (h *UserHandler) Update(c *gin.Context) {
+	ck := c.Param("corpKey")
+	var req ChangeUserRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	up := toUserProfile(req)
+	up.CorpKey = entity.NewCorpKey(ck)
+	u, err := h.useCase.Update(c.Request.Context(), up)
+	if err != nil {
+		_ = c.Error(err)
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.ToUserDTO(*u))
 }
 
 func (h *UserHandler) GetByCorpKey(c *gin.Context) {
@@ -69,5 +90,5 @@ func (h *UserHandler) GetByCorpKey(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, dto.UserFromEntity(u))
+	c.JSON(http.StatusOK, dto.ToUserDTO(*u))
 }

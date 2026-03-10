@@ -11,7 +11,10 @@ import (
 	"golang.org/x/text/unicode/norm"
 )
 
-const defaultDomain = "co-group.com"
+const (
+	defaultDomain = "co-group.com"
+	maxRetries    = 100
+)
 
 func generatePrimarySMTP(ctx context.Context, smtpRepo usecase.SMTPRepository, up *entity.UserProfile) (entity.Email, error) {
 	fn := sanitizeName(up.FirstName)
@@ -25,12 +28,12 @@ func generatePrimarySMTP(ctx context.Context, smtpRepo usecase.SMTPRepository, u
 
 	eml := fmt.Sprintf("%v@%v", un, domain)
 
-	for i := range 100 {
+	for i := range maxRetries {
 		smtp, err := smtpRepo.GetByEmail(ctx, entity.Email(strings.ToLower(eml)))
 		if err != nil {
 			return "", err
 		}
-		if smtp == nil {
+		if smtp == nil || smtp.Identity == string(up.CorpKey) {
 			return entity.Email(strings.ToLower(eml)), nil
 		}
 		eml = fmt.Sprintf("%v.%v@%v", un, (i + 1), domain)

@@ -10,6 +10,11 @@ import (
 	"github.com/yakonstantine/go-msa-lab/services/user-service/internal/usecase"
 )
 
+const (
+	minLimit = 10
+	maxLimit = 500
+)
+
 type UseCase struct {
 	txf      usecase.TransactionFactory
 	userRepo usecase.UserRepository
@@ -83,12 +88,14 @@ func (uc *UseCase) Update(ctx context.Context, up *entity.UserProfile) (*entity.
 	u.UpdatedAt = time.Now().UTC()
 	u.Deleted = false
 
-	overrideSMTPs, err := uc.regeneratePrimarySMTP(ctx, up, u)
+	oldPrimary := u.PrimarySMTP
+	err = uc.regeneratePrimarySMTP(ctx, u, up)
 	if err != nil {
 		return nil, err
 	}
 
-	err = uc.updateTx(ctx, u, overrideSMTPs)
+	smtpsChanged := u.PrimarySMTP != oldPrimary
+	err = uc.updateTx(ctx, u, smtpsChanged)
 	if err != nil {
 		return nil, err
 	}
@@ -102,6 +109,8 @@ func (uc *UseCase) GetByCorpKey(ctx context.Context, ck entity.CorpKey) (*entity
 
 func (uc *UseCase) GetPage(ctx context.Context, limit, offset int) (entity.Page[entity.User], error) {
 	var zero entity.Page[entity.User]
+
+	limit = normalizeLimit(limit)
 	page, err := uc.userRepo.GetPage(ctx, limit, offset)
 	if err != nil {
 		return entity.Page[entity.User]{}, err
@@ -120,12 +129,13 @@ func (uc *UseCase) GetPage(ctx context.Context, limit, offset int) (entity.Page[
 		return zero, fmt.Errorf("error getting users SMTPs: %w", err)
 	}
 
-	for _, item := range page.Items {
-		smtps, ok := addresses[string(item.CorpKey)]
+	for i := range page.Items {
+		ck := string(page.Items[i].CorpKey)
+		smtps, ok := addresses[ck]
 		if !ok {
-			return zero, fmt.Errorf("no SMTPs for user '%v'", item.CorpKey)
+			return zero, fmt.Errorf("no SMTPs for user '%v'", ck)
 		}
-		populateUserSMTPs(&item, smtps)
+		populateUserSMTPs(&page.Items[i], smtps)
 	}
 
 	return page, nil
@@ -210,37 +220,19 @@ func (uc *UseCase) getUserWithSMTPs(ctx context.Context, ck entity.CorpKey) (*en
 	if err != nil {
 		return nil, fmt.Errorf("error get user's '%v' SMTPs: %w", ck, err)
 	}
-	for _, smtp := range smtps {
-		if smtp.Type != entity.Secondary {
-			continue
-		}
-		u.SecondarySMTPs = append(u.SecondarySMTPs, smtp.Address)
-	}
+	populateUserSMTPs(u, smtps)
 
 	return u, nil
 }
 
-func populateUserSMTPs(u *entity.User, smtps []entity.SMTPAddress) {
-	for _, smtp := range smtps {
-		if smtp.Type != entity.Secondary {
-			continue
-		}
-		u.SecondarySMTPs = append(u.SecondarySMTPs, smtp.Address)
-	}
-}
-
-func (uc *UseCase) regeneratePrimarySMTP(ctx context.Context, up *entity.UserProfile, u *entity.User) (bool, error) {
-	regenerated := false
-
+func (uc *UseCase) regeneratePrimarySMTP(ctx context.Context, u *entity.User, up *entity.UserProfile) error {
 	newPrimarySMTP, err := generatePrimarySMTP(ctx, uc.smtpRepo, up)
 	if err != nil {
-		return regenerated, err
+		return err
 	}
 	if u.PrimarySMTP == newPrimarySMTP {
-		return regenerated, nil
+		return nil
 	}
-
-	regenerated = true
 
 	u.SecondarySMTPs = append(u.SecondarySMTPs, u.PrimarySMTP)
 	u.PrimarySMTP = newPrimarySMTP
@@ -252,5 +244,24 @@ func (uc *UseCase) regeneratePrimarySMTP(ctx context.Context, up *entity.UserPro
 		}
 	}
 
-	return regenerated, nil
+	return nil
+}
+
+func populateUserSMTPs(u *entity.User, smtps []entity.SMTPAddress) {
+	for _, smtp := range smtps {
+		if smtp.Type != entity.Secondary {
+			continue
+		}
+		u.SecondarySMTPs = append(u.SecondarySMTPs, smtp.Address)
+	}
+}
+
+func normalizeLimit(limit int) int {
+	if limit < minLimit {
+		return minLimit
+	}
+	if limit > maxLimit {
+		return maxLimit
+	}
+	return limit
 }
