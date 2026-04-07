@@ -43,7 +43,7 @@ func (uc *UseCase) Create(ctx context.Context, up *entity.UserProfile) (*entity.
 		if err != nil {
 			return nil, err
 		}
-		return nil, fmt.Errorf("user with corp key '%v': %w", up.CorpKey, entity.ErrAlreadyExists)
+		return nil, fmt.Errorf("user with corp key '%v' %w", up.CorpKey, entity.ErrAlreadyExists)
 	}
 
 	primarySMTP, err := generatePrimarySMTP(ctx, uc.smtpRepo, up)
@@ -111,6 +111,7 @@ func (uc *UseCase) GetPage(ctx context.Context, limit, offset int) (entity.Page[
 	var zero entity.Page[entity.User]
 
 	limit = normalizeLimit(limit)
+	offset = max(0, offset)
 	page, err := uc.userRepo.GetPage(ctx, limit, offset)
 	if err != nil {
 		return entity.Page[entity.User]{}, err
