@@ -149,8 +149,7 @@ func (uc *UseCase) createTx(ctx context.Context, u *entity.User) error {
 	}
 	defer tx.Rollback()
 
-	err = uc.userRepo.Create(ctx, tx, u)
-	if err != nil {
+	if err = uc.userRepo.Create(ctx, tx, u); err != nil {
 		return fmt.Errorf("can't create user '%v': %w", u.CorpKey, err)
 	}
 
@@ -163,7 +162,11 @@ func (uc *UseCase) createTx(ctx context.Context, u *entity.User) error {
 		return fmt.Errorf("can't create user's '%v' primary smtp '%v': %w", u.CorpKey, u.PrimarySMTP, err)
 	}
 
-	return tx.Commit()
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("can't commit create user '%v' with with primary smtp '%v': %w", u.CorpKey, u.PrimarySMTP, err)
+	}
+
+	return nil
 }
 
 func (uc *UseCase) updateTx(ctx context.Context, u *entity.User, overrideSMTPs bool) error {
@@ -179,6 +182,9 @@ func (uc *UseCase) updateTx(ctx context.Context, u *entity.User, overrideSMTPs b
 	}
 
 	if !overrideSMTPs {
+		if err = tx.Commit(); err != nil {
+			return fmt.Errorf("can't commit update user '%v': %w", u.CorpKey, err)
+		}
 		return nil
 	}
 
@@ -196,13 +202,15 @@ func (uc *UseCase) updateTx(ctx context.Context, u *entity.User, overrideSMTPs b
 		})
 	}
 
-	err = uc.smtpRepo.DeleteAll(ctx, tx, string(u.CorpKey))
-	if err != nil {
+	if err = uc.smtpRepo.DeleteAll(ctx, tx, string(u.CorpKey)); err != nil {
 		return fmt.Errorf("can't remove currents smtps '%v': %w", u.CorpKey, err)
 	}
-	err = uc.smtpRepo.CreateMany(ctx, tx, smtps)
-	if err != nil {
+	if err = uc.smtpRepo.CreateMany(ctx, tx, smtps); err != nil {
 		return fmt.Errorf("can't replace smtps '%v': %w", u.CorpKey, err)
+	}
+
+	if err = tx.Commit(); err != nil {
+		return fmt.Errorf("can't commit update user '%v': %w", u.CorpKey, err)
 	}
 
 	return nil
